@@ -61,10 +61,11 @@ namespace UnityAssets
 
 			foreach (AssetItem asset in assets)
 			{
-				//Console.WriteLine("Reading {0}", asset.Text);
 				switch (asset.Type)
 				{
 					case ClassIDType.Sprite:
+						Console.WriteLine("Reading {0}", asset.Text);
+
 						if (!TryExportFile(dstFolder, asset, ".png", out var exportFullPath))
 							continue;
 						var stream = ((Sprite)asset.Asset).GetImage(ImageFormat.Png);
