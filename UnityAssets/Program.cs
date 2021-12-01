@@ -37,11 +37,6 @@ namespace UnityAssets
 		{
 			AssetsManager assetsManager = new AssetsManager();
 
-			//string dstFolder = @"E:\dev\_____export\academy";
-			//string rootFolder = @"D:\Games\Plarium\PlariumPlay\StandAloneApps\raid\";
-			//string[] assetDirGlobs = { "resources", "*/Raid_Data/StreamingAssets/AssetBundles" };
-			//string[] assetGlobs = { "*UIShared*" };
-
 			string dstFolder = options.OutputDir;
 			string rootFolder = options.RootDir;
 			string[] assetDirGlobs = options.AssetDir.ToArray();
@@ -49,7 +44,6 @@ namespace UnityAssets
 
 			string[] assetFiles = FindFiles(rootFolder, assetDirGlobs, assetGlobs);
 
-			// has to be valid filepaths, not dirs
 			if (assetFiles.Count() == 0)
 			{
 				Console.WriteLine("Your query returned no files. Booho!");
@@ -67,7 +61,7 @@ namespace UnityAssets
 
 			foreach (AssetItem asset in assets)
 			{
-				//Console.WriteLine("Reading {0}", asset.Text);
+				Console.WriteLine("Reading {0}", asset.Text);
 				switch (asset.Type)
 				{
 					case ClassIDType.Sprite:
