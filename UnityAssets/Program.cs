@@ -22,10 +22,10 @@ namespace UnityAssets
 			[Option('r', "rootDir", Required = true, HelpText = "Game root directory. E.g.\n-r D:/Games/Plarium/PlariumPlay/StandAloneApps/raid")]
 			public string RootDir { get; set; }
 
-			[Option('a', "assetDir", Min = 1, Separator = ',', HelpText = "One or more asset directories separated by comma. Supports globs: E.g.\n-a resources,*/Raid_Data/StreamingAssets/AssetBundles")]
+			[Option('a', "assetDir", Min = 1, Separator = ',', HelpText = "Match one or more asset directories. Separated by comma. Supports globs: E.g.\n-a resources,*/Raid_Data/StreamingAssets/AssetBundles")]
 			public IEnumerable<string> AssetDir { get; set; }
 
-			[Option('b', "bundleFiles", Min = 1, Separator = ',', HelpText = "One or more asset asset bundles to match separated by comma. Supports globs: E.g.\n-b *UIShared*,SkillIcons*")]
+			[Option('b', "bundleFiles", Min = 1, Separator = ',', HelpText = "Match one or more asset bundles to match. Separated by comma. Supports globs: E.g.\n-b *UIShared*,SkillIcons*")]
 			public IEnumerable<string> Bundles { get; set; }
 
 			[Option('o', "outputDir", Required = true, HelpText = "Location to write files to. E.g.\n-r D:/data")]
