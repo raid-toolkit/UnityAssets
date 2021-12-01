@@ -61,7 +61,7 @@ namespace UnityAssets
 
 			foreach (AssetItem asset in assets)
 			{
-				Console.WriteLine("Reading {0}", asset.Text);
+				//Console.WriteLine("Reading {0}", asset.Text);
 				switch (asset.Type)
 				{
 					case ClassIDType.Sprite:
@@ -88,16 +88,8 @@ namespace UnityAssets
 
 		static int Main(string[] args)
 		{
-			var parser = new Parser();
-			var parserResult = parser.ParseArguments<Options>(args);
-			parserResult
-				.WithParsed(opt => RunAndReturnExitCode(opt))
-				.WithNotParsed(x =>
-				{
-					var helpText = HelpText.AutoBuild(parserResult, e => e);
-					Console.WriteLine(helpText);
-				});
-			return 0;
+			return Parser.Default.ParseArguments<Options>(args)
+				.MapResult(RunAndReturnExitCode, _ => 1);
 		}
 
 		private static string[] FindFiles(string rootDir, string[] assetDirGlobs, string[] assetGlobs)
