@@ -31,6 +31,9 @@ namespace UnityAssets
 			[Option('o', "outputDir", Required = true, HelpText = "Location to write files to. E.g.\n-r D:/data")]
 			public string OutputDir { get; set; }
 
+			[Option('k', "keepFiles", Required = false, Default = false, HelpText = "Keep files with the same filename by appending a number. Otherwise they will be overwritten.")]
+			public bool KeepFiles { get; set; }
+
 		}
 
 		static int RunAndReturnExitCode(Options options)
@@ -66,7 +69,7 @@ namespace UnityAssets
 					case ClassIDType.Sprite:
 						Console.WriteLine("Reading {0}", asset.Text);
 
-						if (!TryExportFile(dstFolder, asset, ".png", out var exportFullPath))
+						if (!TryExportFile(dstFolder, asset, ".png", options.KeepFiles, out var exportFullPath))
 							continue;
 						var stream = ((Sprite)asset.Asset).GetImage(ImageFormat.Png);
 						if (stream != null)
@@ -123,7 +126,7 @@ namespace UnityAssets
 			return bundleFiles.ToArray();
 		}
 
-				public static List<AssetItem> BuildAssetData(AssetsManager assetsManager)
+		public static List<AssetItem> BuildAssetData(AssetsManager assetsManager)
 		{
 			var assetItems = new List<AssetItem>();
 			var containers = new List<(PPtr<AssetStudio.Object>, string)>();
@@ -214,13 +217,17 @@ namespace UnityAssets
 			return Path.GetInvalidFileNameChars().Aggregate(str, (current, c) => current.Replace(c, '_'));
 		}
 
-		private static bool TryExportFile(string dir, AssetItem item, string extension, out string fullPath)
+		private static bool TryExportFile(string dir, AssetItem item, string extension, bool keepFiles ,out string fullPath)
 		{
 			var fileName = FixFileName(item.Text);
 			fullPath = Path.Combine(dir, fileName + extension);
-			if (!File.Exists(fullPath))
+			if (!File.Exists(fullPath) )
 			{
 				Directory.CreateDirectory(dir);
+				return true;
+			}
+			if (!keepFiles)
+			{
 				return true;
 			}
 			fullPath = Path.Combine(dir, fileName + item.UniqueID + extension);
