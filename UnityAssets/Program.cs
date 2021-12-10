@@ -61,14 +61,13 @@ namespace UnityAssets
 			}
 
 			var assets= BuildAssetData(assetsManager);
+			var rootFolderNormalized = rootFolder.Replace("/", @"\");
 
 			foreach (AssetItem asset in assets)
 			{
 				switch (asset.Type)
 				{
 					case ClassIDType.Sprite:
-						Console.WriteLine("Reading {0}", asset.Text);
-
 						if (!TryExportFile(dstFolder, asset, ".png", options.KeepFiles, out var exportFullPath))
 							continue;
 						var stream = ((Sprite)asset.Asset).GetImage(ImageFormat.Png);
@@ -76,7 +75,7 @@ namespace UnityAssets
 						{
 							using (stream)
 							{
-								Console.WriteLine("Saving {0}", asset.Text);
+								Console.WriteLine("Saving {0}\t{1}", asset.Text.FixedLength(16), asset.SourceFile.originalPath.Replace(rootFolderNormalized, ""));
 								File.WriteAllBytes(exportFullPath, stream.ToArray());
 							}
 						}
