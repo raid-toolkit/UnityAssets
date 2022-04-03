@@ -2,97 +2,70 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using AssetStudio;
-using CommandLine;
-using CommandLine.Text;
 using GlobExpressions;
-
+using Raid.Toolkit.Model;
+using RGiesecke.DllExport;
 
 namespace UnityAssets
 {
-	class Program
+	class Service
 	{
-		private const int EXIT_SUCCESS = 0;
-		private const int EXIT_ERROR = 1;
+		private static readonly string[] assetDirGlobs = new string[] {
+			"resources",
+			"*/Raid_Data/StreamingAssets/AssetBundles",
+		};
+		private static readonly string[] assetGlobs = new string[] {
+			"HeroAvatars*",
+		};
+		private static readonly PlariumPlayAdapter.GameInfo GameInfo;
+		private static bool IsValid;
+		private static readonly Dictionary<string, Sprite> SpriteMap = new Dictionary<string, Sprite>();
 
-		class Options
+		static Service()
 		{
-			[Option('r', "rootDir", Required = true, HelpText = "Game root directory. E.g.\n-r D:/Games/Plarium/PlariumPlay/StandAloneApps/raid")]
-			public string RootDir { get; set; }
+			PlariumPlayAdapter pp = new PlariumPlayAdapter();
+			IsValid = pp.TryGetGameVersion(101, "raid", out GameInfo);
+			if (!IsValid)
+			{
+				return;
+			}
 
-			[Option('a', "assetDir", Min = 1, Separator = ',', HelpText = "Match one or more asset directories. Separated by comma. Supports globs: E.g.\n-a resources,*/Raid_Data/StreamingAssets/AssetBundles")]
-			public IEnumerable<string> AssetDir { get; set; }
-
-			[Option('b', "bundleFiles", Min = 1, Separator = ',', HelpText = "Match one or more asset bundles to match. Separated by comma. Supports globs: E.g.\n-b *UIShared*,SkillIcons*")]
-			public IEnumerable<string> Bundles { get; set; }
-
-			[Option('o', "outputDir", Required = true, HelpText = "Location to write files to. E.g.\n-r D:/data")]
-			public string OutputDir { get; set; }
-
-			[Option('k', "keepFiles", Required = false, Default = false, HelpText = "Keep files with the same filename by appending a number. Otherwise they will be overwritten.")]
-			public bool KeepFiles { get; set; }
-
+			Load();
 		}
 
-		static int RunAndReturnExitCode(Options options)
+		private static void Load()
 		{
+			string[] assetFiles = FindFiles(GameInfo.InstallPath, assetDirGlobs, assetGlobs);
+			if (assetFiles.Length == 0)
+			{
+				IsValid = false;
+				return;
+			}
+
 			AssetsManager assetsManager = new AssetsManager();
-
-			string dstFolder = options.OutputDir;
-			string rootFolder = options.RootDir;
-			string[] assetDirGlobs = options.AssetDir.ToArray();
-			string[] assetGlobs = options.Bundles.ToArray();
-
-			string[] assetFiles = FindFiles(rootFolder, assetDirGlobs, assetGlobs);
-
-			if (assetFiles.Count() == 0)
-			{
-				Console.WriteLine("Your query returned no files. Booho!");
-				return EXIT_ERROR;
-			}
-
 			assetsManager.LoadFiles(assetFiles);
-			if (assetsManager.assetsFileList.Count == 0)
+
+			var assets = BuildAssetData(assetsManager);
+			var spriteAssets = assets.Where(asset => asset.Type == ClassIDType.Sprite);
+			foreach (var spriteAsset in spriteAssets)
 			{
-				Console.WriteLine("No assets found. Booho!");
-				return EXIT_ERROR;
+				SpriteMap.Add(spriteAsset.Text, spriteAsset.Asset as Sprite);
 			}
-
-			var assets= BuildAssetData(assetsManager);
-			var rootFolderNormalized = rootFolder.Replace("/", @"\");
-
-			foreach (AssetItem asset in assets)
-			{
-				switch (asset.Type)
-				{
-					case ClassIDType.Sprite:
-						if (!TryExportFile(dstFolder, asset, ".png", options.KeepFiles, out var exportFullPath))
-							continue;
-						var stream = ((Sprite)asset.Asset).GetImage(ImageFormat.Png);
-						if (stream != null)
-						{
-							using (stream)
-							{
-								Console.WriteLine("Saving {0}\t{1}", asset.Text.FixedLength(16), asset.SourceFile.originalPath.Replace(rootFolderNormalized, ""));
-								File.WriteAllBytes(exportFullPath, stream.ToArray());
-							}
-						}
-						break;
-					default:
-						break;
-				}
-
-			}
-
-			return EXIT_SUCCESS;
 		}
 
-		static int Main(string[] args)
+		// function GetPngFromHero(ID: String; Buf: array of Byte) : SIZE: int64;
+		[DllExport(CallingConvention = CallingConvention.StdCall)]
+		public static long GetPngFromHero([MarshalAs(UnmanagedType.LPWStr)] string id, IntPtr byteBuf)
 		{
-			return Parser.Default.ParseArguments<Options>(args)
-				.MapResult(RunAndReturnExitCode, _ => 1);
+			if (!SpriteMap.TryGetValue(id, out Sprite sprite))
+			{
+				return 0;
+			}
+			byte[] imgBuf = sprite.GetImage(ImageFormat.Png).ToArray();
+			Marshal.Copy(imgBuf, 0, byteBuf, imgBuf.Length);
+			return imgBuf.Length;
 		}
 
 		private static string[] FindFiles(string rootDir, string[] assetDirGlobs, string[] assetGlobs)
@@ -216,11 +189,11 @@ namespace UnityAssets
 			return Path.GetInvalidFileNameChars().Aggregate(str, (current, c) => current.Replace(c, '_'));
 		}
 
-		private static bool TryExportFile(string dir, AssetItem item, string extension, bool keepFiles ,out string fullPath)
+		private static bool TryExportFile(string dir, AssetItem item, string extension, bool keepFiles, out string fullPath)
 		{
 			var fileName = FixFileName(item.Text);
 			fullPath = Path.Combine(dir, fileName + extension);
-			if (!File.Exists(fullPath) )
+			if (!File.Exists(fullPath))
 			{
 				Directory.CreateDirectory(dir);
 				return true;
